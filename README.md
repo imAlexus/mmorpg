@@ -1,41 +1,49 @@
 
-# Mini Web MMORPG (Starter Kit)
+# MMO Web - Auth Starter (Supabase Email+Password)
 
-Un progetto minimale per avviare subito un piccolo **MMO sul web**:
-- Server Node.js + **Socket.IO** per la sincronizzazione in tempo reale
-- Client HTML5 Canvas senza librerie esterne
-- Movimento con WASD/frecce, chat globale, nomi personalizzabili
-- Mappa grande con griglia, camera che segue il giocatore
+Starter pronto con:
+- Login/Register (email+password) via **Supabase**
+- Verifica JWT sul server (Socket.IO middleware)
+- Chat overlay in basso a sinistra (stile Albion)
+- Mini-mappa e HUD con ping
+- Movimento base con WASD/frecce
 
 ## Requisiti
 - Node.js 18+
-- Porta 3000 libera
+- Account Supabase (free)
 
-## Avvio in locale
-```bash
-npm install
-npm run start
+## Setup
+1) Crea un progetto su Supabase e annota **Project URL** e **Anon Key**.
+2) Copia `.env.example` in `.env` e incolla i tuoi valori.
+3) Apri `public/client.js` e sostituisci `<<INSERISCI_SUPABASE_URL>>` e `<<INSERISCI_SUPABASE_ANON_KEY>>`.
+   > In alternativa, puoi fare un semplice build che inietti le env lato client.
+4) Installa dipendenze e avvia:
+   ```bash
+   npm install
+   npm run start
+   ```
+5) Vai su **http://localhost:3000** → appare la schermata di autenticazione.
+
+## Note
+- Il server controlla il token in handshake, quindi **senza login non si entra**.
+- Nome/Colore al momento non sono salvati su DB; se vuoi salvarli, usa la service role key lato server per upsert su `profiles`.
+- Per Produzione: imposta le stesse env (SUPABASE_URL, SUPABASE_ANON_KEY, PORT) sulla piattaforma (Render, Railway, Fly.io).
+
+## Extra DB (opzionale)
+Tabella profili:
+
+```sql
+create table public.profiles (
+  id uuid primary key references auth.users(id) on delete cascade,
+  name text,
+  color text,
+  updated_at timestamptz default now()
+);
+alter table public.profiles enable row level security;
+create policy "read own profile" on public.profiles
+for select using (auth.uid() = id);
+create policy "upsert own profile" on public.profiles
+for insert with check (auth.uid() = id);
+create policy "update own profile" on public.profiles
+for update using (auth.uid() = id);
 ```
-Poi apri il browser su **http://localhost:3000**. Apri 2+ tab o dispositivi per testare il multiplayer.
-
-## Deploy veloce (Render/Railway/Fly.io)
-1. Fai un nuovo repo con questi file.
-2. Crea un nuovo servizio **Web** (Node) puntando a `npm start`.
-3. Esponi la porta 3000 (o usa `PORT` fornita dalla piattaforma).
-
-## Struttura
-```
-server.js         # server Express + Socket.IO + world state
-public/index.html # UI + canvas
-public/client.js  # logica client, input, render
-public/style.css  # stile base
-package.json
-```
-
-## Prossimi step (idee)
-- Collisioni con muri/ostacoli, tileset e mappe JSON
-- Inventario/XP/quest, salvataggi su DB (Postgres) con utenti
-- Stanza/i (istanze) con canali chat separati
-- Anti-cheat di base, rate limit, server authority più forte
-- Grafica: sprite, effetti particellari, sound FX
-- Hosting del server separato dal front-end (CDN) + HTTPS/WSS

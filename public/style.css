@@ -3,19 +3,13 @@ html, body {
   margin: 0; padding: 0; height: 100%; background: #0f0f12; color: #eaeaf0;
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
 }
-#ui { position: static; max-width: 960px; margin: 10px auto 0; display: grid; gap: 8px; }
+#ui { position: sticky; top: 0; z-index: 5; display: grid; gap: 8px; max-width: 960px; margin: 10px auto 0; padding: 6px 10px; background: rgba(10,10,14,0.7); backdrop-filter: blur(6px); border-bottom: 1px solid #22232b; }
 .row { display: flex; gap: 8px; align-items: center; }
 label { opacity: .8; }
-input { background: #17171c; border: 1px solid #2c2c34; color: #eaeaf0; padding: 8px 10px; border-radius: 8px; }
+input { flex: 1; background: #17171c; border: 1px solid #2c2c34; color: #eaeaf0; padding: 8px 10px; border-radius: 8px; }
 button { background: #2b59ff; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
 
-/* Stage che contiene canvas + overlay chat */
-#stage {
-  position: relative;
-  width: fit-content;
-  margin: 12px auto 24px;
-}
-
+#stage { position: relative; width: fit-content; margin: 20px auto; }
 #game {
   display: block;
   background: #0b0b10;
@@ -25,7 +19,7 @@ button { background: #2b59ff; color: white; border: none; padding: 8px 12px; bor
   margin: 0 auto;
 }
 
-/* Chat stile Albion in basso-sinistra sopra il canvas */
+/* Chat overlay stile Albion */
 #chatPanel {
   position: absolute;
   left: 12px;
@@ -33,7 +27,6 @@ button { background: #2b59ff; color: white; border: none; padding: 8px 12px; bor
   width: min(40%, 420px);
   pointer-events: none;
 }
-
 #chatLog {
   max-height: 200px;
   overflow-y: auto;
@@ -45,21 +38,32 @@ button { background: #2b59ff; color: white; border: none; padding: 8px 12px; bor
   line-height: 1.35;
   pointer-events: auto;
 }
-
 #chatLog .msg { color: #eaeaf0; margin: 2px 0; word-break: break-word; }
 #chatLog .name { opacity: .85; font-weight: 600; margin-right: 6px; }
 #chatLog .self { color: #00ff9f; }
-
 #chatInput {
-  width: 100%;
-  margin-top: 6px;
+  width: 100%; margin-top: 6px;
   background: rgba(15,15,18,0.9);
-  border: 1px solid #2c2c34;
-  color: #eaeaf0;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 14px;
+  border: 1px solid #2c2c34; color: #eaeaf0;
+  padding: 8px 10px; border-radius: 8px; font-size: 14px;
   pointer-events: auto;
 }
 
-/* Mini-mappa cornice per maggiore contrasto (canvas la disegna) */
+/* Auth modal */
+#auth {
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  background: rgba(0,0,0,0.6);
+  z-index: 50;
+}
+#auth .card {
+  width: min(340px, 90vw);
+  background: #14141a; color: #eaeaf0;
+  border: 1px solid #2c2c34; border-radius: 12px;
+  padding: 16px; box-shadow: 0 10px 30px rgba(0,0,0,.45);
+  display: grid; gap: 10px;
+}
+#auth .row { display: flex; gap: 8px; }
+#auth input { background:#17171c; border:1px solid #2c2c34; color:#eaeaf0; padding:8px 10px; border-radius:8px; width:100%; }
+#auth button { background:#2b59ff; color:white; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; }
+#authErr { min-height: 18px; font-size: 12px; color: #ff8080; }

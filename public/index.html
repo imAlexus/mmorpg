@@ -4,14 +4,15 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mini Web MMO Starter</title>
+  <title>MMO Web - Auth Starter</title>
   <link rel="stylesheet" href="/style.css">
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm"></script>
 </head>
 <body>
   <div id="ui">
     <div class="row">
-      <span><strong>Mini Web MMO</strong></span>
-      <span id="status">connessione…</span>
+      <span><strong>MMO Web</strong></span>
+      <span id="status">autenticazione…</span>
     </div>
     <div class="row">
       <label>Nome:</label>
@@ -19,18 +20,27 @@
         autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <button id="setName">Imposta</button>
     </div>
-    <div class="row">
-      <label>Colore:</label>
-      <input id="color" type="color" value="#2b59ff">
-      <button id="setColor">Applica</button>
+  </div>
+
+  <!-- AUTH GATE -->
+  <div id="auth">
+    <div class="card">
+      <h3>Accedi</h3>
+      <input id="authEmail" type="email" placeholder="Email" autocomplete="off">
+      <input id="authPass" type="password" placeholder="Password">
+      <div class="row">
+        <button id="btnLogin">Login</button>
+        <button id="btnRegister">Register</button>
+      </div>
+      <div id="authErr"></div>
     </div>
   </div>
 
-  <!-- Stage: canvas + chat overlay -->
+  <!-- STAGE: canvas + chat overlay -->
   <div id="stage">
     <canvas id="game" width="960" height="540"></canvas>
 
-    <!-- Chat overlay sempre visibile in basso-sinistra -->
+    <!-- CHAT OVERLAY in basso-sinistra -->
     <div id="chatPanel">
       <div id="chatLog"></div>
       <input id="chatInput" maxlength="200" placeholder="Scrivi e premi Invio"
@@ -38,7 +48,6 @@
     </div>
   </div>
 
-  <script src="/socket.io/socket.io.js"></script>
   <script type="module" src="/client.js"></script>
 </body>
 </html>

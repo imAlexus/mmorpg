@@ -2,22 +2,42 @@
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
+import { createClient } from '@supabase/supabase-js';
+import 'dotenv/config';
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: '*' }
-});
+const io = new Server(server, { cors: { origin: '*' } });
 
 const PORT = process.env.PORT || 3000;
 
+// Static
 app.use(express.static('public'));
+
+// Supabase client per validare JWT lato server
+const supa = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
+  auth: { persistSession: false }
+});
+
+// Middleware di autenticazione Socket.IO
+io.use(async (socket, next) => {
+  try {
+    const token = socket.handshake.auth?.token;
+    if (!token) return next(new Error('Missing auth token'));
+    const { data, error } = await supa.auth.getUser(token);
+    if (error || !data?.user) return next(new Error('Invalid token'));
+    socket.user = data.user; // user.id disponibile
+    return next();
+  } catch (e) {
+    return next(e);
+  }
+});
 
 // --- Simple in-memory world state ---
 const WORLD = {
   width: 2000,
   height: 1200,
-  players: {} // id -> { x, y, name, color, lastInputSeq }
+  players: {} // id -> { x, y, name, color, uid, lastInputSeq, hp }
 };
 
 function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
@@ -28,38 +48,36 @@ function randomColor() {
   return `hsl(${h} 90% 55%)`;
 }
 
-function randomName() {
-  const animals = ['Volpe','Panda','Lupo','Tigre','Drago','Aquila','Gatto','Delfino','Koala','Ibis'];
-  return animals[Math.floor(Math.random() * animals.length)] + '#' + Math.floor(Math.random()*900+100);
+function nameFromEmail(email) {
+  if (!email) return 'Avventuriero';
+  const local = email.split('@')[0];
+  return local.slice(0, 20);
 }
 
 io.on('connection', (socket) => {
-  // Spawn a player in the center
+  // Spawn per utente autenticato
   const spawn = {
     x: WORLD.width / 2 + (Math.random() * 200 - 100),
     y: WORLD.height / 2 + (Math.random() * 200 - 100),
-    name: randomName(),
+    name: nameFromEmail(socket.user?.email),
     color: randomColor(),
-    lastInputSeq: 0
+    uid: socket.user?.id || null,
+    lastInputSeq: 0,
+    hp: Math.floor(Math.random() * 50 + 50)
   };
   WORLD.players[socket.id] = spawn;
 
-  // Send initial snapshot
+  // Invia snapshot iniziale
   socket.emit('hello', {
     id: socket.id,
     world: { width: WORLD.width, height: WORLD.height },
     players: WORLD.players
   });
 
-  // Ping/Pong per misurare il round-trip (latency)
-  socket.on('pingCheck', (clientTs) => {
-    // Rimanda al client lo stesso timestamp
-    socket.emit('pongCheck', clientTs);
-  });
-
-  // Let others know
+  // Notifica altri
   socket.broadcast.emit('join', { id: socket.id, player: WORLD.players[socket.id] });
 
+  // Movimento
   socket.on('move', (payload) => {
     const p = WORLD.players[socket.id];
     if (!p) return;
@@ -72,6 +90,7 @@ io.on('connection', (socket) => {
     p.lastInputSeq = Math.max(p.lastInputSeq, seq);
   });
 
+  // Chat
   socket.on('chat', (msg) => {
     const p = WORLD.players[socket.id];
     const text = ('' + (msg?.text ?? '')).slice(0, 200);
@@ -79,11 +98,23 @@ io.on('connection', (socket) => {
     io.emit('chat', { id: socket.id, name: p?.name ?? '???', text, ts: Date.now() });
   });
 
+  // Cambia nome/colore (client-side + opzionale salvataggio DB lato server)
   socket.on('setName', (name) => {
     const p = WORLD.players[socket.id];
     if (!p) return;
-    const clean = ('' + name).slice(0, 20);
-    if (clean.trim()) p.name = clean;
+    const clean = ('' + name).slice(0, 20).trim();
+    if (clean) p.name = clean;
+  });
+  socket.on('setColor', (color) => {
+    const p = WORLD.players[socket.id];
+    if (!p) return;
+    const clean = ('' + color).trim().slice(0, 10);
+    p.color = clean || p.color;
+  });
+
+  // Ping round-trip
+  socket.on('pingCheck', (clientTs) => {
+    socket.emit('pongCheck', clientTs);
   });
 
   socket.on('disconnect', () => {
@@ -92,11 +123,11 @@ io.on('connection', (socket) => {
   });
 });
 
-// Broadcast world state at 20 ticks/sec
+// Broadcast stato mondo
 setInterval(() => {
   io.emit('state', { players: WORLD.players, ts: Date.now() });
 }, 50);
 
 server.listen(PORT, () => {
-  console.log('MMORPG starter running on http://localhost:' + PORT);
+  console.log('MMO Auth starter on http://localhost:' + PORT);
 });

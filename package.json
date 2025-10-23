@@ -1,6 +1,6 @@
 {
-  "name": "mmorpg-starter",
-  "version": "0.1.0",
+  "name": "mmorpg-auth-starter",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.1",
+    "@supabase/supabase-js": "^2.48.1",
+    "dotenv": "^16.4.5"
   }
 }
