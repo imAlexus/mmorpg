@@ -21,13 +21,18 @@ const btnLogin = document.getElementById('btnLogin');
 const btnRegister = document.getElementById('btnRegister');
 const authErr  = document.getElementById('authErr');
 
-// === Profilo (badge) ===
+// === Profilo (badge) — opzionale ===
 const userProfileEl = document.getElementById('userProfile');
 const userButtonEl  = document.getElementById('userButton');
 const userAvatarEl  = document.getElementById('userAvatar');
 const userNameEl    = document.getElementById('userName');
 const userMenuEl    = document.getElementById('userMenu');
 const logoutBtn     = document.getElementById('btnLogout');
+
+const hasProfileUI = !!(userProfileEl && userButtonEl && userAvatarEl && userNameEl && userMenuEl && logoutBtn);
+if (!hasProfileUI) {
+  console.warn('[UI] Badge profilo non trovato in index.html. Il login funziona comunque.');
+}
 
 // === Stato locale ===
 const me = { id: null };
@@ -67,12 +72,13 @@ function hideAuthGate() {
   authErr.textContent = '';
 }
 
-// === Badge profilo ===
+// === Badge profilo (safe) ===
 function firstLetter(s) {
   const t = (s || 'Ospite').trim();
   return t ? t[0].toUpperCase() : 'O';
 }
 function setProfileUI({ name = 'Ospite', email = '', loggedIn = false } = {}) {
+  if (!hasProfileUI) return;
   const display = name || (email ? email.split('@')[0] : 'Ospite');
   userNameEl.textContent = display;
   userAvatarEl.textContent = firstLetter(display);
@@ -81,41 +87,42 @@ function setProfileUI({ name = 'Ospite', email = '', loggedIn = false } = {}) {
   userMenuEl.classList.remove('open');
 }
 
-// === Eventi profilo ===
-userButtonEl.addEventListener('click', (e) => {
-  e.stopPropagation();
-  if (userProfileEl.classList.contains('logged-out')) {
-    showAuthGate();
-    return;
-  }
-  const open = userMenuEl.classList.toggle('open');
-  userButtonEl.setAttribute('aria-expanded', open ? 'true' : 'false');
-});
-document.addEventListener('click', () => {
-  userMenuEl.classList.remove('open');
-  userButtonEl.setAttribute('aria-expanded', 'false');
-});
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
+// === Eventi profilo (safe) ===
+if (hasProfileUI) {
+  userButtonEl.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (userProfileEl.classList.contains('logged-out')) {
+      showAuthGate();
+      return;
+    }
+    const open = userMenuEl.classList.toggle('open');
+    userButtonEl.setAttribute('aria-expanded', open ? 'true' : 'false');
+  });
+  document.addEventListener('click', () => {
     userMenuEl.classList.remove('open');
     userButtonEl.setAttribute('aria-expanded', 'false');
-  }
-});
-logoutBtn.addEventListener('click', async (e) => {
-  e.preventDefault();
-  userMenuEl.classList.remove('open');
-  try {
-    if (socket) socket.disconnect();
-    await supabase.auth.signOut();
-  } catch (err) {
-    console.error('logout error:', err);
-  }
-});
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      userMenuEl.classList.remove('open');
+      userButtonEl.setAttribute('aria-expanded', 'false');
+    }
+  });
+  logoutBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+    userMenuEl.classList.remove('open');
+    try {
+      if (socket) socket.disconnect();
+      await supabase.auth.signOut();
+    } catch (err) {
+      console.error('logout error:', err);
+    }
+  });
+}
 
 // === Flusso principale ===
 window.addEventListener('error', (e) => console.error('JS error:', e.message));
 
-// ---------- START GAME ----------
 async function startGameWithSession(session) {
   if (!session?.access_token) {
     showAuthGate('Non sei loggato. Fai login.');
@@ -125,7 +132,6 @@ async function startGameWithSession(session) {
 
   const token = session.access_token;
 
-  // crea socket
   // eslint-disable-next-line no-undef
   socket = io({ auth: { token } });
 
@@ -135,12 +141,17 @@ async function startGameWithSession(session) {
     console.error('connect_error:', err);
     statusEl.textContent = 'errore auth/socket';
     showAuthGate('Accesso scaduto o non valido. Effettua di nuovo il login.');
+    setProfileUI({ loggedIn: false });
   });
 
-  // imposta profilo utente
-  const { data: { user } } = await supabase.auth.getUser();
-  const displayName = user?.user_metadata?.name || (user?.email ? user.email.split('@')[0] : 'Utente');
-  setProfileUI({ name: displayName, email: user?.email, loggedIn: true });
+  // profilo
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    const displayName = user?.user_metadata?.name || (user?.email ? user.email.split('@')[0] : 'Utente');
+    setProfileUI({ name: displayName, email: user?.email, loggedIn: true });
+  } catch (e) {
+    console.warn('getUser failed:', e);
+  }
 
   // --- eventi gioco ---
   socket.on('hello', (payload) => {
