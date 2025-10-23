@@ -139,6 +139,35 @@ function drawPlayers(cam) {
   ctx.restore();
 }
 
+function drawMiniMap() {
+  const w = 200, h = 120;
+  const scaleX = w / world.width;
+  const scaleY = h / world.height;
+
+  const pad = 16;
+  const x0 = canvas.width - w - pad;
+  const y0 = pad;
+
+  // sfondo
+  ctx.save();
+  ctx.fillStyle = 'rgba(0,0,0,0.6)';
+  ctx.fillRect(x0, y0, w, h);
+
+  // giocatori
+  for (const id in players) {
+    const p = players[id];
+    const color = id === me.id ? '#00ff9f' : p.color || '#fff';
+    ctx.fillStyle = color;
+    ctx.fillRect(x0 + p.x * scaleX, y0 + p.y * scaleY, 3, 3);
+  }
+
+  // cornice
+  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+  ctx.strokeRect(x0, y0, w, h);
+  ctx.restore();
+}
+
+
 function loop(ts) {
   const dt = Math.min(50, ts - last);
   last = ts;
@@ -154,6 +183,7 @@ function loop(ts) {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   drawGrid(cam);
   drawPlayers(cam);
+  drawMiniMap();
 
   // HUD
   ctx.save();
