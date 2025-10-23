@@ -51,6 +51,12 @@ io.on('connection', (socket) => {
     players: WORLD.players
   });
 
+  // Ping/Pong per misurare il round-trip (latency)
+  socket.on('pingCheck', (clientTs) => {
+    // Rimanda al client lo stesso timestamp
+    socket.emit('pongCheck', clientTs);
+  });
+
   // Let others know
   socket.broadcast.emit('join', { id: socket.id, player: WORLD.players[socket.id] });
 

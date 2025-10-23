@@ -15,6 +15,9 @@ const players = {}; // id -> state
 let last = performance.now();
 let seq = 0;
 let connected = false;
+let pingMs = 0;
+const pingSamples = []; // per media mobile
+
 
 function log(msg) {
   const p = document.createElement('div');
@@ -47,6 +50,23 @@ socket.on('leave', ({ id }) => {
   const n = players[id]?.name ?? id;
   delete players[id];
   log(`${n} è uscito`);
+});
+// Invia un ping ogni 2 secondi
+setInterval(() => {
+  const start = performance.now();
+  socket.emit('pingCheck', start);
+}, 2000);
+
+// Ricevi il pong e calcola la latenza
+socket.on('pongCheck', (start) => {
+  const ms = Math.round(performance.now() - start);
+  // media mobile su ultime 5 misure
+  pingSamples.push(ms);
+  if (pingSamples.length > 5) pingSamples.shift();
+  pingMs = Math.round(pingSamples.reduce((a, b) => a + b, 0) / pingSamples.length);
+
+  // aggiorna la label di stato in alto
+  statusEl.textContent = `online ✓ ${pingMs} ms`;
 });
 
 socket.on('chat', ({ name, text }) => log(`${name}: ${text}`));
@@ -190,6 +210,7 @@ function loop(ts) {
   ctx.font = '14px system-ui, sans-serif';
   ctx.fillStyle = 'rgba(255,255,255,0.85)';
   ctx.fillText('Giocatori: ' + Object.keys(players).length, 12, 20);
+  ctx.fillText('Ping: ' + (connected ? pingMs + ' ms' : '—'), 12, 40);
   ctx.restore();
 
   requestAnimationFrame(loop);
