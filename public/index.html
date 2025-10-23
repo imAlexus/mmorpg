@@ -1,0 +1,32 @@
+
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Web MMO Starter</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div id="ui">
+    <div class="row">
+      <span><strong>Mini Web MMO</strong></span>
+      <span id="status">connessione…</span>
+    </div>
+    <div class="row">
+      <label>Nome:</label>
+      <input id="name" maxlength="20" placeholder="Il tuo nome">
+      <button id="setName">Imposta</button>
+    </div>
+    <div class="row">
+      <label>Chat:</label>
+      <input id="chatInput" maxlength="200" placeholder="Scrivi e premi Invio">
+    </div>
+    <div id="log"></div>
+  </div>
+  <canvas id="game" width="960" height="540"></canvas>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

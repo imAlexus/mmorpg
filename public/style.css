@@ -1,0 +1,12 @@
+
+html, body {
+  margin: 0; padding: 0; height: 100%; background: #0f0f12; color: #eaeaf0;
+  font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+}
+#ui { position: fixed; top: 10px; left: 10px; right: 10px; display: grid; gap: 8px; max-width: 960px; margin: 0 auto; }
+.row { display: flex; gap: 8px; align-items: center; }
+label { opacity: .8; }
+input { flex: 1; background: #17171c; border: 1px solid #2c2c34; color: #eaeaf0; padding: 8px 10px; border-radius: 8px; }
+button { background: #2b59ff; color: white; border: none; padding: 8px 12px; border-radius: 8px; cursor: pointer; }
+#log { max-height: 140px; overflow: auto; background: #111116; border: 1px solid #2c2c34; padding: 8px; border-radius: 8px; font-size: 13px; }
+#game { display: block; margin: 170px auto 20px; background: #0b0b10; border: 1px solid #2c2c34; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.35); }
