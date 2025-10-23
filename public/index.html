@@ -15,16 +15,28 @@
     </div>
     <div class="row">
       <label>Nome:</label>
-      <input id="name" maxlength="20" placeholder="Il tuo nome">
+      <input id="name" maxlength="20" placeholder="Il tuo nome"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
       <button id="setName">Imposta</button>
     </div>
     <div class="row">
-      <label>Chat:</label>
-      <input id="chatInput" maxlength="200" placeholder="Scrivi e premi Invio">
+      <label>Colore:</label>
+      <input id="color" type="color" value="#2b59ff">
+      <button id="setColor">Applica</button>
     </div>
-    <div id="log"></div>
   </div>
-  <canvas id="game" width="960" height="540"></canvas>
+
+  <!-- Stage: canvas + chat overlay -->
+  <div id="stage">
+    <canvas id="game" width="960" height="540"></canvas>
+
+    <!-- Chat overlay sempre visibile in basso-sinistra -->
+    <div id="chatPanel">
+      <div id="chatLog"></div>
+      <input id="chatInput" maxlength="200" placeholder="Scrivi e premi Invio"
+        autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
+    </div>
+  </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script type="module" src="/client.js"></script>

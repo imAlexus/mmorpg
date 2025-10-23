@@ -4,8 +4,11 @@ const ctx = canvas.getContext('2d');
 const statusEl = document.getElementById('status');
 const nameInput = document.getElementById('name');
 const setNameBtn = document.getElementById('setName');
+const colorInput = document.getElementById('color');
+const setColorBtn = document.getElementById('setColor');
+
 const chatInput = document.getElementById('chatInput');
-const logEl = document.getElementById('log');
+const chatLog = document.getElementById('chatLog');
 
 const socket = io();
 
@@ -15,15 +18,27 @@ const players = {}; // id -> state
 let last = performance.now();
 let seq = 0;
 let connected = false;
+
+// Ping data
 let pingMs = 0;
-const pingSamples = []; // per media mobile
+const pingSamples = [];
 
+function log(msg, opts = {}) {
+  const line = document.createElement('div');
+  line.className = 'msg';
+  if (opts.self) line.classList.add('self');
+  if (opts.name) {
+    const n = document.createElement('span');
+    n.className = 'name' + (opts.self ? ' self' : '');
+    n.textContent = opts.name + ':';
+    line.appendChild(n);
+  }
+  const t = document.createElement('span');
+  t.textContent = ' ' + msg;
+  line.appendChild(t);
 
-function log(msg) {
-  const p = document.createElement('div');
-  p.textContent = msg;
-  logEl.appendChild(p);
-  logEl.scrollTop = logEl.scrollHeight;
+  chatLog.appendChild(line);
+  chatLog.scrollTop = chatLog.scrollHeight;
 }
 
 socket.on('connect', () => {
@@ -51,43 +66,32 @@ socket.on('leave', ({ id }) => {
   delete players[id];
   log(`${n} è uscito`);
 });
-// Invia un ping ogni 2 secondi
-setInterval(() => {
-  const start = performance.now();
-  socket.emit('pingCheck', start);
-}, 2000);
 
-// Ricevi il pong e calcola la latenza
-socket.on('pongCheck', (start) => {
-  const ms = Math.round(performance.now() - start);
-  // media mobile su ultime 5 misure
-  pingSamples.push(ms);
-  if (pingSamples.length > 5) pingSamples.shift();
-  pingMs = Math.round(pingSamples.reduce((a, b) => a + b, 0) / pingSamples.length);
-
-  // aggiorna la label di stato in alto
-  statusEl.textContent = `online ✓ ${pingMs} ms`;
+socket.on('chat', ({ id, name, text }) => {
+  const self = id === me.id;
+  log(text, { name, self });
 });
 
-socket.on('chat', ({ name, text }) => log(`${name}: ${text}`));
-
 socket.on('state', ({ players: ps }) => {
-  // Shallow copy into local players for simple client-side interpolation
   for (const id of Object.keys(ps)) {
     if (!players[id]) players[id] = { x: 0, y: 0, name: '???', color: '#fff' };
     Object.assign(players[id], ps[id]);
   }
-  // Remove stale players
   for (const id of Object.keys(players)) {
     if (!ps[id]) delete players[id];
   }
 });
 
+// Name & Color
 setNameBtn.addEventListener('click', () => {
   const v = nameInput.value.trim();
   if (v) socket.emit('setName', v);
 });
+setColorBtn.addEventListener('click', () => {
+  socket.emit('setColor', colorInput.value);
+});
 
+// Chat input
 chatInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') {
     const text = chatInput.value.trim();
@@ -97,9 +101,11 @@ chatInput.addEventListener('keydown', (e) => {
   e.stopPropagation();
 });
 
+// Movement keys
 const keys = new Set();
 window.addEventListener('keydown', (e) => {
-  if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) return;
+  const tag = document.activeElement?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return; // non catturare quando si scrive
   keys.add(e.key.toLowerCase());
 });
 window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
@@ -163,30 +169,38 @@ function drawMiniMap() {
   const w = 200, h = 120;
   const scaleX = w / world.width;
   const scaleY = h / world.height;
-
   const pad = 16;
   const x0 = canvas.width - w - pad;
   const y0 = pad;
 
-  // sfondo
   ctx.save();
+  // background
   ctx.fillStyle = 'rgba(0,0,0,0.6)';
   ctx.fillRect(x0, y0, w, h);
 
-  // giocatori
   for (const id in players) {
     const p = players[id];
-    const color = id === me.id ? '#00ff9f' : p.color || '#fff';
+    const color = id === me.id ? '#00ff9f' : (p.color || '#fff');
     ctx.fillStyle = color;
     ctx.fillRect(x0 + p.x * scaleX, y0 + p.y * scaleY, 3, 3);
   }
-
-  // cornice
   ctx.strokeStyle = 'rgba(255,255,255,0.3)';
   ctx.strokeRect(x0, y0, w, h);
   ctx.restore();
 }
 
+// Ping loop
+setInterval(() => {
+  const start = performance.now();
+  socket.emit('pingCheck', start);
+}, 2000);
+socket.on('pongCheck', (start) => {
+  const ms = Math.round(performance.now() - start);
+  pingSamples.push(ms);
+  if (pingSamples.length > 5) pingSamples.shift();
+  pingMs = Math.round(pingSamples.reduce((a, b) => a + b, 0) / pingSamples.length);
+  statusEl.textContent = `online ✓ ${pingMs} ms`;
+});
 
 function loop(ts) {
   const dt = Math.min(50, ts - last);
@@ -217,10 +231,10 @@ function loop(ts) {
 }
 requestAnimationFrame(loop);
 
-// Handle resize to keep 16:9 canvas
+// Responsive canvas 16:9
 function resize() {
   const w = Math.min(window.innerWidth - 20, 1280);
-  const h = Math.min(window.innerHeight - 200, 720);
+  const h = Math.min(window.innerHeight - 220, 720);
   const ratio = 16/9;
   let cw = w, ch = Math.round(w/ratio);
   if (ch > h) { ch = h; cw = Math.round(h*ratio); }
