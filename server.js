@@ -11,7 +11,6 @@ const io = new Server(server, { cors: { origin: '*' } });
 
 const PORT = process.env.PORT || 3000;
 
-// Static
 app.use(express.static('public'));
 
 // Supabase client per validare JWT lato server
@@ -26,10 +25,10 @@ io.use(async (socket, next) => {
     if (!token) return next(new Error('Missing auth token'));
     const { data, error } = await supa.auth.getUser(token);
     if (error || !data?.user) return next(new Error('Invalid token'));
-    socket.user = data.user; // user.id disponibile
-    return next();
+    socket.user = data.user; // user.id, user.email
+    next();
   } catch (e) {
-    return next(e);
+    next(e);
   }
 });
 
@@ -98,7 +97,7 @@ io.on('connection', (socket) => {
     io.emit('chat', { id: socket.id, name: p?.name ?? '???', text, ts: Date.now() });
   });
 
-  // Cambia nome/colore (client-side + opzionale salvataggio DB lato server)
+  // Cambia nome/colore
   socket.on('setName', (name) => {
     const p = WORLD.players[socket.id];
     if (!p) return;

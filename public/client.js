@@ -1,10 +1,9 @@
 
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-// Inserisci i TUOI valori (o usa .env sul server e sostituisci in build)
+// Inserisci i TUOI valori
 const SUPABASE_URL = 'https://umpopyjonjdlrfhrmrpi.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVtcG9weWpvbmpkbHJmaHJtcnBpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjEyMzU4ODcsImV4cCI6MjA3NjgxMTg4N30.L7ggbDAe6CzsQ9hIARarJHRLo1NBndES5qFNBk3AAJU';
-
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON);
 
 const canvas = document.getElementById('game');
@@ -63,10 +62,12 @@ async function showError(err) { authErr.textContent = err?.message || err || '';
 
 btnRegister.addEventListener('click', async () => {
   authErr.textContent = '';
-  const { data, error } = await supabase.auth.signUp({ email: emailEl.value, password: passEl.value });
+  const { data, error } = await supabase.auth.signUp(
+    { email: emailEl.value, password: passEl.value },
+    { emailRedirectTo: window.location.origin } // redirect dopo conferma
+  );
   if (error) return showError(error);
-  const { data: sess } = await supabase.auth.getSession();
-  if (sess?.session) await startGameWithSession(sess.session);
+  authErr.textContent = 'Controlla la tua email per confermare.';
 });
 
 btnLogin.addEventListener('click', async () => {
@@ -81,11 +82,9 @@ async function startGameWithSession(session) {
   const token = session.access_token;
 
   // Crea socket passando il JWT
-  // Nota: il server validarà il token nel middleware
   // eslint-disable-next-line no-undef
   socket = io({ auth: { token } });
 
-  // Socket handlers
   socket.on('connect', () => {
     connected = true;
     statusEl.textContent = 'online ✓';
@@ -93,6 +92,10 @@ async function startGameWithSession(session) {
   socket.on('disconnect', () => {
     connected = false;
     statusEl.textContent = 'disconnesso';
+  });
+  socket.on('connect_error', (err) => {
+    console.error('connect_error:', err);
+    statusEl.textContent = 'errore auth/socket';
   });
 
   socket.on('hello', (payload) => {
@@ -155,14 +158,13 @@ async function startGameWithSession(session) {
     if (v) socket.emit('setName', v);
   });
 
-  // Start render loop
   requestAnimationFrame(loop);
 }
 
 // ======== GAME LOOP & RENDER ========
 const keys = new Set();
 window.addEventListener('keydown', (e) => {
-  if (document.activeElement === chatInput) return; // non catturare quando scrivi in chat
+  if (document.activeElement === chatInput) return;
   keys.add(e.key.toLowerCase());
 });
 window.addEventListener('keyup', (e) => keys.delete(e.key.toLowerCase()));
@@ -264,8 +266,7 @@ function loop(ts) {
   const dt = Math.min(50, ts - last);
   last = ts;
 
-  // invia input al server
-  if (socket) {
+  if (window.io && socket) {
     const { dx, dy } = inputDir();
     seq++;
     socket.emit('move', { dx, dy, dt, seq });
